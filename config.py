@@ -11,6 +11,10 @@ prepared = 2
 unprepared_order = 0
 prepared_order = 1
 
+# define states of cook
+available = 0
+busy = 1
+
 # define constants
 time_unit = 0.1
 nr_cooks = 3

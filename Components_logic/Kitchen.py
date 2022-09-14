@@ -54,5 +54,5 @@ class Kitchen:
 
             # excluding prepared orders from the list of orders
             while len(self.prepared_order_list) > 0:
-                self.order_list.remove(self.prepared_order_list[0])
+                self.order_list.remove(self.prepared_order_list[-1])
                 self.prepared_order_list.pop()
