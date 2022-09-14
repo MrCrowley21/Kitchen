@@ -15,17 +15,20 @@ class Cook:
         self.lock = Lock()  # define inner mutex
         self.divided_cook_time = None  # define the time after dividing food_preparation
         self.prepared_food = []  # temporary list of food that was prepared
+        self.is_available = available
 
     # distribute food preparation
     def cook_food(self, food):
         food.state = in_preparation
         food.food_lock.release()
+        self.is_available = busy
         # dividing food preparation in tasks to cook one food in parallel
         self.divided_cook_time = food.preparation_time / self.proficiency
         # initiate thread for each task
         for i in range(self.proficiency):
             Thread(target=self.cook_by_parts, args=(self.divided_cook_time, food)).start()
         # modify the state of the food
+        self.is_available = available
         with food.food_lock:
             food.state = prepared
 
@@ -37,7 +40,8 @@ class Cook:
                 for food in order.items:
                     food.food_lock.acquire()
                     # check food state and its complexity
-                    if food.state == waiting_to_be_prepared and self.rank >= food.complexity:
+                    if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
+                            and self.is_available == available:
                         self.cook_food(food)
                     else:
                         food.food_lock.release()
