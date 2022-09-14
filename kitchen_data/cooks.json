@@ -1,0 +1,29 @@
+[
+  {
+    "rank": 3,
+    "proficiency": 4,
+    "name": "Gordon Ramsay",
+    "catch-phrase": "Hey, panini head, are you listening to me?"
+  },
+
+  {
+    "rank": 2,
+    "proficiency": 3,
+    "name": "Sunny Anderson",
+    "catch-phrase": "Cumin baked chicken WITH SWEET HONEY-LIME SAUCE"
+  },
+
+  {
+    "rank": 2,
+    "proficiency": 2,
+    "name": "Guy Fieri",
+    "catch-phrase": "Flavourtown"
+  },
+
+  {
+    "rank": 1,
+    "proficiency": 2,
+    "name": "David Chang",
+    "catch-phrase": "Eat A Peach"
+  }
+]
