@@ -16,5 +16,5 @@ available = 0
 busy = 1
 
 # define constants
-time_unit = 0.1
+time_unit = 0.2
 nr_cooks = 3

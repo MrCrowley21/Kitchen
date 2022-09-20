@@ -1,7 +1,11 @@
 from time import sleep
 from threading import Thread, Lock
+import logging
 
 from config import *
+
+# initialize the logger mode
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Cook:
@@ -16,6 +20,7 @@ class Cook:
         self.divided_cook_time = None  # define the time after dividing food_preparation
         self.prepared_food = []  # temporary list of food that was prepared
         self.is_available = available
+        self.cooked_part = 0
 
     # distribute food preparation
     def cook_food(self, food):
@@ -23,14 +28,10 @@ class Cook:
         food.food_lock.release()
         self.is_available = busy
         # dividing food preparation in tasks to cook one food in parallel
-        self.divided_cook_time = food.preparation_time / self.proficiency
+        self.divided_cook_time = food.preparation_time * time_unit / self.proficiency
         # initiate thread for each task
         for i in range(self.proficiency):
             Thread(target=self.cook_by_parts, args=(self.divided_cook_time, food)).start()
-        # modify the state of the food
-        self.is_available = available
-        with food.food_lock:
-            food.state = prepared
 
     # find and prepare the found food item
     def prepare_food(self):
@@ -43,9 +44,16 @@ class Cook:
                     if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
                             and self.is_available == available:
                         self.cook_food(food)
+                        logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')
                     else:
                         food.food_lock.release()
 
     # performing a subtask of food cooking
     def cook_by_parts(self, cook_time, food):
-        sleep(time_unit * cook_time)
+        sleep(cook_time)
+        with self.lock:
+            self.cooked_part += 1
+            if self.cooked_part == self.proficiency:
+                food.state = prepared
+                self.is_available = available
+                self.cooked_part = 0
