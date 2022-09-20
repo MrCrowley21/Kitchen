@@ -26,8 +26,8 @@ class Kitchen:
         logging.info(f'Adding order {order["order_id"]} in the order list...')
         items = [Food(self.menu[i]) for i in order['items_id']]
         items.sort(key=lambda x: x.complexity, reverse=True)
-        order = Order(order['order_id'], order['items_nr'], order['items_id'], items, order['priority'],
-                      order['max_wait'], order['table_id'])
+        order = Order(order['order_id'], order['table_id'], order['waiter_id'], order['items_id'],
+                      items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         self.order_list.append(order)
         self.order_list.sort(key=lambda x: x.order_id)
@@ -45,7 +45,7 @@ class Kitchen:
             for order in self.order_list:
                 # check for prepared orders and send them to the dinning hall
                 if order.get_state() == prepared_order:
-                    requests.post(f'{dinning_hall_container_url}receive_prepared_order',
+                    requests.post(f'{dinning_hall_url}receive_prepared_order',
                                   json={'order_id': order.order_id, 'table_id': order.table_id,
                                         'max_wait': order.max_wait})
                     logging.info(f'Order {order.order_id} with max_wait {order.max_wait} has been '
