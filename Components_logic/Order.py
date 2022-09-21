@@ -1,4 +1,5 @@
 from config import *
+import time
 
 from Components_logic.Menu import *
 from Components_logic.Food import *
@@ -15,6 +16,8 @@ class Order:
         self.priority = priority
         self.max_wait = max_wait
         self.pick_up_time = pick_up_time
+        self.cooking_time = time.time()
+        self.cooking_details = []
 
     # check if the order is already prepared or not
     def get_state(self):
