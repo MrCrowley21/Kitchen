@@ -9,8 +9,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class Cook:
-    def __init__(self, cooks, kitchen):
+    def __init__(self, cooks, cook_id, kitchen):
         self.cook = cooks  # define the cook
+        self.cook_id = cook_id + 1  # give id to the cook
         self.rank = cooks['rank']  # define the rank of the cook
         self.proficiency = cooks['proficiency']  # define the proficiency of the cook
         self.name = cooks['name']  # define the name of the cook
@@ -36,21 +37,31 @@ class Cook:
     # find and prepare the found food item
     def prepare_food(self):
         while True:
+            if len(self.kitchen.order_list) == 0:
+                continue
             # searching for food to prepare by checking them
-            for order in self.kitchen.order_list:
+            order = self.kitchen.order_list[0]
+            # for order in self.kitchen.order_list:
+            while order.get_state() != prepared_order:
                 for food in order.items:
                     food.food_lock.acquire()
+                    self.lock.acquire()
                     # check food state and its complexity
                     if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
                             and self.is_available == available:
+                        self.lock.release()
+                        order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
+                        logging.info(f'Starting prepare food {food.food_id} from order {order.order_id}...')
                         self.cook_food(food)
                         logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')
                     else:
                         food.food_lock.release()
+                        self.lock.release()
 
     # performing a subtask of food cooking
     def cook_by_parts(self, cook_time, food):
         sleep(cook_time)
+        # check number of finished threads and set food as prepared if done
         with self.lock:
             self.cooked_part += 1
             if self.cooked_part == self.proficiency:

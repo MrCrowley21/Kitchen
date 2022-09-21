@@ -1,5 +1,7 @@
 import threading
 import logging
+from copy import copy
+
 import requests
 
 from Components_logic.Order import *
@@ -18,7 +20,8 @@ class Kitchen:
         self.order_list = []  # define the list with the orders
         self.prepared_order_list = []  # define the temporary list with prepared orders
         self.lock = threading.Lock()  # define the inner locker
-        self.cooks = [Cook(i, self) for i in Cooks(nr_cooks).get_cooks()]  # get the list of cooks in the kitchen
+        cooks_list = Cooks(nr_cooks).get_cooks()
+        self.cooks = [Cook(i, cooks_list.index(i), self) for i in cooks_list]  # get the list of cooks in the kitchen
 
     # set the order after its receiving
     def receive_order(self, order):
@@ -30,7 +33,7 @@ class Kitchen:
                       items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         self.order_list.append(order)
-        self.order_list.sort(key=lambda x: x.order_id)
+        self.order_list.sort(key=lambda x: (-x.order_id / x.priority, x.order_id))
 
     # set up threads for cooks
     def put_cooks_to_work(self):
@@ -45,14 +48,18 @@ class Kitchen:
             for order in self.order_list:
                 # check for prepared orders and send them to the dinning hall
                 if order.get_state() == prepared_order:
+                    order.cooking_time = (time.time() - order.cooking_time) / time_unit
+                    order_to_send = copy(order.__dict__)
+                    order_to_send.pop('items', None)
                     requests.post(f'{dinning_hall_url}receive_prepared_order',
-                                  json={'order_id': order.order_id, 'table_id': order.table_id,
-                                        'max_wait': order.max_wait})
-                    logging.info(f'Order {order.order_id} with max_wait {order.max_wait} has been '
-                                 f'prepared and sent to the dinning hall')
+                                  json=order_to_send)
+                    logging.info(f'Order {order.order_id} with order details:\n'
+                                 f'{order_to_send} \n'
+                                 f'has been prepared and sent to the dinning hall')
                     self.prepared_order_list.append(order)  # append prepared order to the list
+                    break
 
             # excluding prepared orders from the list of orders
             while len(self.prepared_order_list) > 0:
-                self.order_list.remove(self.prepared_order_list[-1])
-                self.prepared_order_list.pop()
+                self.order_list.remove(self.prepared_order_list[0])
+                self.prepared_order_list.pop(0)
