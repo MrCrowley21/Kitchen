@@ -10,4 +10,5 @@ class Food:
         self.complexity = menu_description['complexity']
         self.cooking_apparatus = menu_description['cooking-apparatus']
         self.state = waiting_to_be_prepared
+        self.cook_id = None
         self.food_lock = Lock()

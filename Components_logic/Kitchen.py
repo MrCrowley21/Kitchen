@@ -9,6 +9,7 @@ from Components_logic.Cooks import *
 from Components_logic.Cook import *
 from Components_logic.Menu import *
 from Components_logic.Food import *
+from Components_logic.Cooking_apparatus import *
 from config import *
 
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +23,9 @@ class Kitchen:
         self.lock = threading.Lock()  # define the inner locker
         cooks_list = Cooks(nr_cooks).get_cooks()
         self.cooks = [Cook(i, cooks_list.index(i), self) for i in cooks_list]  # get the list of cooks in the kitchen
+        # define used cooking apparatus
+        self.cooking_apparatus = {'oven': CookingApparatus('oven', oven_nr, self),
+                                  'stove': CookingApparatus('stove', stove_nr, self)}
         self.order_list_lock = Lock()
 
     # set the order after its receiving
@@ -34,17 +38,24 @@ class Kitchen:
                       items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         self.order_list.append(order)
-        self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
+        self.order_list.sort(key=lambda x: (-x.order_id / x.priority, x.order_id))
 
     # set up threads for cooks
     def put_cooks_to_work(self):
         for cook in self.cooks:
             threading.Thread(target=cook.prepare_food).start()
 
+    # set up the threads for cooking apparatus
+    def start_cooking_apparatus(self):
+        for apparatus in self.cooking_apparatus:
+            current_apparatus = self.cooking_apparatus[apparatus]
+            threading.Thread(target=current_apparatus.select_food, args=()).start()
+
     # prepare orders and sending them to the dining hall
     def prepare_order(self):
         # set up the cooks
         self.put_cooks_to_work()
+        self.start_cooking_apparatus()
         while True:
             for order in self.order_list:
                 # check for prepared orders and send them to the dinning hall
