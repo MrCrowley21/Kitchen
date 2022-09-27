@@ -19,6 +19,10 @@ busy = 1
 cooking_apparatus_available = 0
 cooking_apparatus_busy = 1
 
+# define the number of cooking apparatus
+oven_nr = 2
+stove_nr = 1
+
 # define constants
 time_unit = 0.5
 nr_cooks = 4
