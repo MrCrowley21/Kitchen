@@ -22,6 +22,7 @@ class Kitchen:
         self.lock = threading.Lock()  # define the inner locker
         cooks_list = Cooks(nr_cooks).get_cooks()
         self.cooks = [Cook(i, cooks_list.index(i), self) for i in cooks_list]  # get the list of cooks in the kitchen
+        self.order_list_lock = Lock()
 
     # set the order after its receiving
     def receive_order(self, order):
@@ -33,7 +34,7 @@ class Kitchen:
                       items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         self.order_list.append(order)
-        self.order_list.sort(key=lambda x: (-x.order_id / x.priority, x.order_id))
+        self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
 
     # set up threads for cooks
     def put_cooks_to_work(self):

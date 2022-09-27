@@ -1,8 +1,10 @@
 from time import sleep
+import time
 from threading import Thread, Lock
 import logging
 
 from config import *
+from Components_logic.Cooking_aparatus import *
 
 # initialize the logger mode
 logging.basicConfig(level=logging.DEBUG)
@@ -43,20 +45,19 @@ class Cook:
             order = self.kitchen.order_list[0]
             # for order in self.kitchen.order_list:
             while order.get_state() != prepared_order:
-                for food in order.items:
-                    food.food_lock.acquire()
-                    self.lock.acquire()
-                    # check food state and its complexity
-                    if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
-                            and self.is_available == available:
-                        self.lock.release()
-                        order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
-                        logging.info(f'Starting prepare food {food.food_id} from order {order.order_id}...')
-                        self.cook_food(food)
-                        logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')
-                    else:
-                        food.food_lock.release()
-                        self.lock.release()
+                with self.kitchen.order_list_lock:
+                    for food in order.items:
+                        food.food_lock.acquire()
+                        # self.lock.acquire()
+                        # check food state and its complexity
+                        if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
+                                and self.is_available == available:
+                            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
+                            logging.info(f'Starting prepare food {food.food_id} from order {order.order_id}...')
+                            self.cook_food(food)
+                            logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')
+                        else:
+                            food.food_lock.release()
 
     # performing a subtask of food cooking
     def cook_by_parts(self, cook_time, food):

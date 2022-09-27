@@ -26,4 +26,3 @@ if __name__ == "__main__":
     # initialize kitchen
     kitchen = Kitchen()
     kitchen.prepare_order()
-
