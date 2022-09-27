@@ -11,16 +11,14 @@ prepared = 2
 unprepared_order = 0
 prepared_order = 1
 
-<<<<<<< HEAD
-# define constants
-time_unit = 0.1
-nr_cooks = 3
-=======
 # define states of cook
 available = 0
 busy = 1
 
+# define states of cooking_apparatus
+cooking_apparatus_available = 0
+cooking_apparatus_busy = 1
+
 # define constants
 time_unit = 0.5
 nr_cooks = 4
->>>>>>> 502325417bffb3264f30b88cee2d5b8d59090f33
