@@ -24,7 +24,7 @@ class Cook:
         self.prepared_food = []  # temporary list of food that was prepared
         self.is_available = available  # define the availability of the cook
         self.cooked_part = 0   # counter for the divisions that are already cooked
-        self.apparatus_cooked = []  # the list of food cooked by cooking apparatus
+        self.cooking_apparatus = []  # the list of food cooked by cooking apparatus
 
     # distribute food preparation
     def cook_food(self, food):
@@ -44,25 +44,30 @@ class Cook:
                 continue
             # searching for food to prepare by checking them
             order = self.kitchen.order_list[0]
-            # for order in self.kitchen.order_list:
             while order.get_state() != prepared_order:
                 with self.kitchen.order_list_lock:
                     for food in order.items:
                         food.food_lock.acquire()
-                        # self.lock.acquire()
-                        # check food state and its complexity
                         if food.state == waiting_to_be_prepared and self.rank >= food.complexity \
                                 and self.is_available == available:
-                            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
-                            food.cook_id = self.cook_id
-                            logging.info(f'Starting prepare food {food.food_id} from order {order.order_id}...')
                             self.get_preparation_method(food, order)
+                            if food.state != waiting_to_be_prepared:
+                                order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
+                                food.cook_id = self.cook_id
+                                logging.info(f'Cook {self.cook_id} is cooking food {food.food_id} from order '
+                                             f'{order.order_id}...')
                         else:
                             food.food_lock.release()
-                        while len(self.apparatus_cooked) > 0:
-                            current_food = self.apparatus_cooked[0]
-                            current_food.state = prepared
-                            self.apparatus_cooked.pop(0)
+                        i = 0
+                        while i < len(self.cooking_apparatus):
+                            with self.kitchen.lock:
+                                if self.cooking_apparatus[i].state == food_ready:
+                                    current_apparatus = self.cooking_apparatus[i]
+                                    self.cooking_apparatus.pop(i)
+                                    current_apparatus.food.state = prepared
+                                    current_apparatus.state = cooking_apparatus_available
+                                    i -= 1
+                            i += 1
 
     # performing the check of the method of food preparation: using oven, stove or none of them
     def get_preparation_method(self, food, order):
@@ -70,17 +75,22 @@ class Cook:
         if food.cooking_apparatus == 'oven':
             current_apparatus = self.kitchen.cooking_apparatus['oven']
             with current_apparatus.lock:
-                current_apparatus.food_to_prepare.append(food)
-                food.state = in_preparation
+                if current_apparatus.state == cooking_apparatus_available:
+                    current_apparatus.state = cooking_apparatus_busy
+                    food.state = in_preparation
+                    current_apparatus.apparatus_cook_food(food)
+                    self.cooking_apparatus.append(current_apparatus)
             food.food_lock.release()
-        #     in case of stove
+        # in case of stove
         elif food.cooking_apparatus == 'stove':
             current_apparatus = self.kitchen.cooking_apparatus['stove']
             with current_apparatus.lock:
-                current_apparatus.food_to_prepare.append(food)
-                food.state = in_preparation
+                if current_apparatus.state == cooking_apparatus_available:
+                    current_apparatus.state = cooking_apparatus_busy
+                    food.state = in_preparation
+                    current_apparatus.apparatus_cook_food(food)
+                    self.cooking_apparatus.append(current_apparatus)
             food.food_lock.release()
-        # in case of none of the above
         else:
             self.cook_food(food)
             logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')

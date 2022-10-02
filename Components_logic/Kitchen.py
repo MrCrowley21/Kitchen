@@ -38,7 +38,7 @@ class Kitchen:
                       items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         self.order_list.append(order)
-        self.order_list.sort(key=lambda x: (-x.order_id / x.priority, x.order_id))
+        self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
 
     # set up threads for cooks
     def put_cooks_to_work(self):
@@ -46,16 +46,16 @@ class Kitchen:
             threading.Thread(target=cook.prepare_food).start()
 
     # set up the threads for cooking apparatus
-    def start_cooking_apparatus(self):
-        for apparatus in self.cooking_apparatus:
-            current_apparatus = self.cooking_apparatus[apparatus]
-            threading.Thread(target=current_apparatus.select_food, args=()).start()
+    # def start_cooking_apparatus(self):
+    #     for apparatus in self.cooking_apparatus:
+    #         current_apparatus = self.cooking_apparatus[apparatus]
+    #         threading.Thread(target=current_apparatus.apparatus_cook_food, args=()).start()
 
     # prepare orders and sending them to the dining hall
     def prepare_order(self):
         # set up the cooks
         self.put_cooks_to_work()
-        self.start_cooking_apparatus()
+        # self.start_cooking_apparatus()
         while True:
             for order in self.order_list:
                 # check for prepared orders and send them to the dinning hall

@@ -17,7 +17,8 @@ busy = 1
 
 # define states of cooking_apparatus
 cooking_apparatus_available = 0
-cooking_apparatus_busy = 1
+food_ready = 1
+cooking_apparatus_busy = 2
 
 # define the number of cooking apparatus
 oven_nr = 2
