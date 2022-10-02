@@ -15,38 +15,25 @@ class CookingApparatus:
         self.state = cooking_apparatus_available  # the availability of the apparatus
         self.cooked_part = 0  # counter for the divisions that are already cooked
         self.lock = Lock()  # the inner lock of the cooking apparatus object
-        self.food_to_prepare = []  # the list of food items to be prepared
+        self.food = None  # the list of food items to be prepared
 
     # get the food to be prepared from the list of food items and initiate its preparation
-    def select_food(self):
-        while True:
-            for food in self.food_to_prepare:
-                food.food_lock.acquire()
-                if self.state == cooking_apparatus_available and food.state != prepared:
-                    logging.info(f'Cooking apparatus ({self.apparatus_type}) started working on food  {food.food_id}')
-                    self.state = cooking_apparatus_busy
-                    preparation_time = (food.preparation_time * time_unit) / self.quantity
-                    self.food_to_prepare.remove(food)
-                    for i in range(self.quantity):
-                        Thread(target=self.cook_with_apparatus, args=(preparation_time, food)).start()
-                else:
-                    food.food_lock.release()
+    def apparatus_cook_food(self, food):
+        self.food = food
+        if self.food.state != prepared:
+            logging.info(f'Cooking apparatus ({self.apparatus_type}) started working on food  {self.food.food_id}')
+            preparation_time = (self.food.preparation_time * time_unit) / self.quantity
+            for i in range(self.quantity):
+                Thread(target=self.cook_with_apparatus, args=(preparation_time,)).start()
 
     # define cooking logic behind each thread
-    def cook_with_apparatus(self, preparation_time, food):
+    def cook_with_apparatus(self, preparation_time):
         sleep(preparation_time)
         with self.lock:
             self.cooked_part += 1
-            logging.info(f'{food.food_id}, {food.cook_id}, {self.cooked_part}')
+            logging.info(f'{self.food.food_id}, {self.food.cook_id}, {self.cooked_part}')
             if self.cooked_part == self.quantity:
                 self.cooked_part = 0
-                self.notify_cook(food)
-                food.food_lock.release()
-                self.state = cooking_apparatus_available
-
-    # notify the responsible cook about food's preparation
-    def notify_cook(self, food):
-        with self.kitchen.lock:
-            cook = self.kitchen.cooks[food.cook_id - 1]
-            cook.apparatus_cooked.append(food)
-            logging.info(f'Cooking apparatus ({self.apparatus_type}) notified cook {food.cook_id}')
+                # self.notify_cook()
+                logging.info(f'Cooking apparatus ({self.apparatus_type}) notified cook {self.food.cook_id}')
+                self.state = food_ready
