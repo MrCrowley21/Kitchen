@@ -19,6 +19,7 @@ class Kitchen:
     def __init__(self):
         self.menu = Menu().get_foods()  # set the list of food from menu
         self.order_list = []  # define the list with the orders
+        self.order_dict = {}
         self.prepared_order_list = []  # define the temporary list with prepared orders
         self.lock = threading.Lock()  # define the inner locker
         cooks_list = Cooks(nr_cooks).get_cooks()
@@ -26,19 +27,29 @@ class Kitchen:
         # define used cooking apparatus
         self.cooking_apparatus = {'oven': CookingApparatus('oven', oven_nr, self),
                                   'stove': CookingApparatus('stove', stove_nr, self)}
+        # self.cooking_apparatus = {'oven': [CookingApparatus('oven', i, self) for i in range(oven_nr)],
+        #                           'stove': [CookingApparatus('stove', i, self) for i in range(stove_nr)]}
         self.order_list_lock = Lock()
+        self.food_list = []
 
     # set the order after its receiving
     def receive_order(self, order):
         # notify about adding the order in the list of orders needed to be prepared
         logging.info(f'Adding order {order["order_id"]} in the order list...')
-        items = [Food(self.menu[i]) for i in order['items_id']]
-        items.sort(key=lambda x: x.complexity, reverse=True)
+        items = [Food(self.menu[i], order['order_id'], order['priority']) for i in order['items_id']]
+        items.sort(key=lambda x: x.complexity)
         order = Order(order['order_id'], order['table_id'], order['waiter_id'], order['items_id'],
                       items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
-        self.order_list.append(order)
-        self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
+        # self.lock.acquire()
+        with self.lock:
+            self.order_list.append(order)
+            self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
+            self.order_dict[order.order_id] = order
+            self.food_list += items
+            logging.info('44444444444Adding to the food list')
+            self.food_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
+        # self.lock.release()
 
     # set up threads for cooks
     def put_cooks_to_work(self):
