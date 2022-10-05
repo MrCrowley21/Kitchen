@@ -27,3 +27,6 @@ stove_nr = 1
 # define constants
 time_unit = 0.5
 nr_cooks = 4
+
+# define time partition
+time_partition = 13
