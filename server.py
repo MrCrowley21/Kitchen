@@ -22,7 +22,7 @@ def receive_order():
 # start the program execution
 if __name__ == "__main__":
     # initialize server as a thread
-    threading.Thread(target=lambda: app.run(port=8080, host="0.0.0.0", debug=True, use_reloader=False)).start()
+    threading.Thread(target=lambda: app.run(port=port, host="0.0.0.0", debug=True, use_reloader=False)).start()
     # initialize kitchen
     kitchen = Kitchen()
     kitchen.prepare_order()

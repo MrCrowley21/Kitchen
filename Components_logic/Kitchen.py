@@ -47,8 +47,7 @@ class Kitchen:
             self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
             self.order_dict[order.order_id] = order
             self.food_list += items
-            logging.info('44444444444Adding to the food list')
-            self.food_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
+            # self.food_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
         # self.lock.release()
 
     # set up threads for cooks
@@ -74,7 +73,7 @@ class Kitchen:
                     order.cooking_time = (time.time() - order.cooking_time) / time_unit
                     order_to_send = copy(order.__dict__)
                     order_to_send.pop('items', None)
-                    requests.post(f'{dinning_hall_url}receive_prepared_order',
+                    requests.post(f'{dinning_hall_container_url}receive_prepared_order',
                                   json=order_to_send)
                     logging.info(f'Order {order.order_id} with order details:\n'
                                  f'{order_to_send} \n'

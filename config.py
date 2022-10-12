@@ -1,6 +1,22 @@
+# ports
+ports = {
+    'port_1': 8080,
+    'port_2': 8081,
+    'port_3': 8082,
+    'port_4': 8083
+}
+
 # urls
-dinning_hall_url = 'http://127.0.0.1:8000/'
-dinning_hall_container_url = 'http://dinning_hall_container:8000/'
+urls_for_dinning_hall = {
+    'dinning_hall_url_1': 'http://127.0.0.1:8000/',
+    'dinning_hall_container_url_1': 'http://dinning_hall_container_1:8000/',
+    'dinning_hall_url_2': 'http://127.0.0.1:8001/',
+    'dinning_hall_container_url_2': 'http://dinning_hall_container_2:8001/',
+    'dinning_hall_url_3': 'http://127.0.0.1:8002/',
+    'dinning_hall_container_url_3': 'http://dinning_hall_container_3:8002/',
+    'dinning_hall_url_4': 'http://127.0.0.1:8003/',
+    'dinning_hall_container_url_4': 'http://dinning_hall_container_4:8003/'
+}
 
 # define the states of food item
 waiting_to_be_prepared = 0
@@ -21,7 +37,7 @@ food_ready = 1
 cooking_apparatus_busy = 2
 
 # define the number of cooking apparatus
-oven_nr = 2
+oven_nr = 1
 stove_nr = 1
 
 # define constants
@@ -29,4 +45,11 @@ time_unit = 0.5
 nr_cooks = 4
 
 # define time partition
-time_partition = 13
+time_partition = 8
+
+# define configs according to the restaurants
+restaurant_id = '4'
+port = ports['port_' + restaurant_id]
+dinning_hall_url = urls_for_dinning_hall['dinning_hall_url_' + restaurant_id]
+dinning_hall_container_url = urls_for_dinning_hall['dinning_hall_container_url_' + restaurant_id]
+menu = 'kitchen_data/menu_' + restaurant_id + '.json'
