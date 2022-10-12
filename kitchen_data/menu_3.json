@@ -1,0 +1,80 @@
+[
+  {
+    "id": 1,
+    "name": "pizza",
+    "preparation-time": 20 ,
+    "complexity": 2 ,
+    "cooking-apparatus": "oven"
+  },
+
+  {
+    "id": 2,
+    "name": "salad",
+    "preparation-time": 10 ,
+    "complexity": 1 ,
+    "cooking-apparatus": null
+  },
+
+  {
+    "id": 3,
+    "name": "Island Duck with Mulberry Mustard",
+    "preparation-time": 35 ,
+    "complexity": 3 ,
+    "cooking-apparatus": "oven"
+  },
+
+  {
+    "id": 4,
+    "name": "Waffles",
+    "preparation-time": 10 ,
+    "complexity": 1 ,
+    "cooking-apparatus": "stove"
+  },
+
+  {
+    "id": 5,
+    "name": "Aubergine",
+    "preparation-time": 20 ,
+    "complexity": 2 ,
+    "cooking-apparatus": "oven"
+  },
+
+  {
+    "id": 6,
+    "name": "Lasagna",
+    "preparation-time": 30 ,
+    "complexity": 2 ,
+    "cooking-apparatus": "oven"
+  },
+  {
+    "id": 7,
+    "name": "Gyros",
+    "preparation-time": 15,
+    "complexity": 1,
+    "cooking-apparatus": null
+  },
+
+  {
+    "id": 8,
+    "name": "Kebab",
+    "preparation-time": 15 ,
+    "complexity": 1 ,
+    "cooking-apparatus": null
+  },
+
+  {
+    "id": 9,
+    "name": "Unagi Maki",
+    "preparation-time": 20 ,
+    "complexity": 2 ,
+    "cooking-apparatus": null
+  },
+
+  {
+    "id": 10,
+    "name": "Tobacco Chicken",
+    "preparation-time": 30 ,
+    "complexity": 2 ,
+    "cooking-apparatus": "oven"
+  }
+]
