@@ -24,6 +24,7 @@ class Kitchen:
         self.lock = threading.Lock()  # define the inner locker
         cooks_list = Cooks(nr_cooks).get_cooks()
         self.cooks = [Cook(i, cooks_list.index(i), self) for i in cooks_list]  # get the list of cooks in the kitchen
+        self.cooks_proficiency = sum([i.proficiency for i in self.cooks])
         # define used cooking apparatus
         self.cooking_apparatus = {'oven': CookingApparatus('oven', oven_nr, self),
                                   'stove': CookingApparatus('stove', stove_nr, self)}
@@ -38,8 +39,12 @@ class Kitchen:
         logging.info(f'Adding order {order["order_id"]} in the order list...')
         items = [Food(self.menu[i], order['order_id'], order['priority']) for i in order['items_id']]
         items.sort(key=lambda x: x.complexity)
-        order = Order(order['order_id'], order['table_id'], order['waiter_id'], order['items_id'],
-                      items, order['priority'], order['max_wait'], order['pick_up_time'])
+        try:
+            order = Order(order['order_id'], order['table_id'], order['waiter_id'], order['items_id'],
+                          items, order['priority'], order['max_wait'], order['pick_up_time'])
+        except:
+            order = Order(order['order_id'], None, None, order['items_id'],
+                          items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
         # self.lock.acquire()
         with self.lock:
@@ -73,7 +78,7 @@ class Kitchen:
                     order.cooking_time = (time.time() - order.cooking_time) / time_unit
                     order_to_send = copy(order.__dict__)
                     order_to_send.pop('items', None)
-                    requests.post(f'{dinning_hall_container_url}receive_prepared_order',
+                    requests.post(f'{dinning_hall_url}receive_prepared_order',
                                   json=order_to_send)
                     logging.info(f'Order {order.order_id} with order details:\n'
                                  f'{order_to_send} \n'
