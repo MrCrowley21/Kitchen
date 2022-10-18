@@ -39,16 +39,17 @@ cooking_apparatus_busy = 2
 # define the number of cooking apparatus
 oven_nr = 1
 stove_nr = 1
+total_cooking_apparatus = oven_nr + stove_nr
 
 # define constants
 time_unit = 0.5
 nr_cooks = 4
 
 # define time partition
-time_partition = 8
+time_partition = 6
 
 # define configs according to the restaurants
-restaurant_id = '4'
+restaurant_id = '1'
 port = ports['port_' + restaurant_id]
 dinning_hall_url = urls_for_dinning_hall['dinning_hall_url_' + restaurant_id]
 dinning_hall_container_url = urls_for_dinning_hall['dinning_hall_container_url_' + restaurant_id]
