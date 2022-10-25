@@ -26,10 +26,9 @@ class Kitchen:
         self.cooks = [Cook(i, cooks_list.index(i), self) for i in cooks_list]  # get the list of cooks in the kitchen
         self.cooks_proficiency = sum([i.proficiency for i in self.cooks])
         # define used cooking apparatus
-        self.cooking_apparatus = {'oven': CookingApparatus('oven', oven_nr, self),
-                                  'stove': CookingApparatus('stove', stove_nr, self)}
-        # self.cooking_apparatus = {'oven': [CookingApparatus('oven', i, self) for i in range(oven_nr)],
-        #                           'stove': [CookingApparatus('stove', i, self) for i in range(stove_nr)]}
+        self.cooking_apparatus = {'oven': [CookingApparatus('oven', i, self) for i in range(oven_nr)],
+                                  'stove': [CookingApparatus('stove', i, self) for i in range(stove_nr)]}
+        self.apparatus_lock = Lock()
         self.order_list_lock = Lock()
         self.food_list = []
 
@@ -46,25 +45,16 @@ class Kitchen:
             order = Order(order['order_id'], None, None, order['items_id'],
                           items, order['priority'], order['max_wait'], order['pick_up_time'])
         # append new order to the order list and sort it by the order od order generation
-        # self.lock.acquire()
-        with self.lock:
-            self.order_list.append(order)
-            self.order_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
-            self.order_dict[order.order_id] = order
-            self.food_list += items
-            # self.food_list.sort(key=lambda x: (x.order_id / x.priority, x.order_id))
-        # self.lock.release()
+        self.order_list_lock.acquire()
+        self.order_list.append(order)
+        self.order_dict[order.order_id] = order
+        self.food_list += items
+        self.order_list_lock.release()
 
     # set up threads for cooks
     def put_cooks_to_work(self):
         for cook in self.cooks:
             threading.Thread(target=cook.prepare_food).start()
-
-    # set up the threads for cooking apparatus
-    # def start_cooking_apparatus(self):
-    #     for apparatus in self.cooking_apparatus:
-    #         current_apparatus = self.cooking_apparatus[apparatus]
-    #         threading.Thread(target=current_apparatus.apparatus_cook_food, args=()).start()
 
     # prepare orders and sending them to the dining hall
     def prepare_order(self):
@@ -88,5 +78,7 @@ class Kitchen:
 
             # excluding prepared orders from the list of orders
             while len(self.prepared_order_list) > 0:
+                self.order_list_lock.acquire()
                 self.order_list.remove(self.prepared_order_list[0])
+                self.order_list_lock.release()
                 self.prepared_order_list.pop(0)
