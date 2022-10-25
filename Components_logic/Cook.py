@@ -26,116 +26,234 @@ class Cook:
         self.is_available = available  # define the availability of the cook
         self.cooked_part = 0  # counter for the divisions that are already cooked
         self.cooking_apparatus = []  # the list of food cooked by cooking apparatus
-        self.busy_partition = 0
-
-    # distribute food preparation
-    def cook_food(self, food):
-        food.state = in_preparation
-        food.food_lock.release()
-        Thread(target=self.cook_food_part, args=(food,)).start()
+        self.busy_partition = 0  # the number of cook's threads that are busy
+        self.available_apparatus = {'oven': oven_nr,
+                                    'stove': stove_nr}  # the state of the apparatus
 
     # find and prepare the found food item
     def prepare_food(self):
         while True:
-            with self.kitchen.order_list_lock:
-                if len(self.kitchen.food_list) == 0:
-                    continue
-                elif self.is_available == available and self.rank >= self.kitchen.food_list[0].complexity:
-                    food = self.kitchen.food_list.pop(0)
-                    self.lock.acquire()
-                    self.busy_partition += 1
-                    if self.busy_partition == self.proficiency:
-                        self.is_available = busy
-                    self.lock.release()
-                    order = self.kitchen.order_dict[food.order_id]
-                    food.food_lock.acquire()
-                    if food.state == waiting_to_be_prepared:
-                        self.get_preparation_method(food, order)
-                        food.cook_id = self.cook_id
-                        if food.state == in_preparation:
-                            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
-                            logging.info(f'Cook {self.cook_id} is cooking food {food.food_id} from order '
-                                         f'{order.order_id}...')
-                    else:
-                        self.kitchen.food_list.append(food)
-                        food.food_lock.release()
-                        self.lock.acquire()
-                        self.busy_partition -= 1
-                        if self.busy_partition < self.proficiency:
-                            self.is_available = available
-                        self.lock.release()
-            # i += 1
-            i = 0
-            while i < len(self.cooking_apparatus):
-                # with self.lock:
-                if self.cooking_apparatus[i].state == food_ready:
-                    current_apparatus = self.cooking_apparatus[i]
-                    self.cooking_apparatus.pop(i)
-                    if current_apparatus.food.cooked_time >= current_apparatus.food.preparation_time:
-                        current_apparatus.food.state = prepared
-                    else:
-                        current_apparatus.food.state = waiting_to_be_prepared
-                        with self.kitchen.order_list_lock:
-                            self.kitchen.food_list.append(current_apparatus.food)
-                    current_apparatus.state = cooking_apparatus_available
-                    i -= 1
+            self.kitchen.order_list_lock.acquire()
+            if len(self.kitchen.food_list) == 0:
+                self.kitchen.order_list_lock.release()
+                continue
+            elif self.is_available == available:
+                self.kitchen.order_list_lock.release()
+                self.lock.acquire()
+                self.busy_partition += 1
+                if self.busy_partition == self.proficiency:
+                    self.is_available = busy
+                self.lock.release()
+                t = Thread(target=self.cook_food)
+                t.start()
+                t.join()
+            elif self.is_available != available:
+                self.kitchen.order_list_lock.release()
+            else:
+                self.kitchen.order_list_lock.release()
+
+    def cook_food(self):
+        food = self.find_food()
+        self.kitchen.order_list_lock.acquire()
+        self.kitchen.food_list.sort(key=lambda x: x.priority, reverse=True)
+        self.kitchen.order_list_lock.release()
+        if food is not None:
+            order = self.kitchen.order_dict[food.order_id]
+            self.get_preparation_method(food)
+            food.cook_id = self.cook_id
+            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
+        self.lock.acquire()
+        self.busy_partition -= 1
+        if self.busy_partition < self.proficiency:
+            self.is_available = available
+        self.lock.release()
+
+        i = 0
+        while i < len(self.cooking_apparatus):
+            self.cooking_apparatus[i].lock.acquire()
+            if self.cooking_apparatus[i].state == food_ready:
+                current_apparatus = self.cooking_apparatus[i]
+                current_apparatus.lock.release()
+                self.lock.acquire()
+                self.cooking_apparatus.pop(i)
+                self.lock.release()
+                current_apparatus.food.food_lock.acquire()
+                if current_apparatus.food.cooked_time >= current_apparatus.food.preparation_time:
+                    current_apparatus.food.state = prepared
+                    current_apparatus.food.food_lock.release()
+                else:
+                    current_apparatus.food.state = waiting_to_be_prepared
+                    current_apparatus.food.food_lock.release()
+                current_apparatus.lock.acquire()
+                current_apparatus.state = cooking_apparatus_available
+                current_apparatus.lock.release()
+                self.lock.acquire()
+                self.available_apparatus[current_apparatus.food.cooking_apparatus] += 1
+                self.lock.release()
+                logging.info(f'{self.cook_id} {self.is_available}')
+                i -= 1
+            else:
+                self.cooking_apparatus[i].lock.release()
+            i += 1
+
+    def find_food(self):
+        i = 0
+        self.kitchen.order_list_lock.acquire()
+        while i < len(self.kitchen.food_list):
+            food = self.kitchen.food_list[i]
+            food.food_lock.acquire()
+            if food.cooked_time < food.preparation_time and food.complexity <= self.proficiency and \
+                    food.state == waiting_to_be_prepared and \
+                    (food.cooking_apparatus is None or self.available_apparatus[food.cooking_apparatus] > 0):
+                food.state = in_preparation
+                food.food_lock.release()
+                self.kitchen.order_list_lock.release()
+                return food
+            elif food.state == prepared:
+                food.food_lock.release()
+                try:
+                    self.kitchen.food_list.remove(food)
+                except:
+                    pass
+            else:
+                food.food_lock.release()
                 i += 1
+        self.kitchen.order_list_lock.release()
+        return None
 
     # performing the check of the method of food preparation: using oven, stove or none of them
-    def get_preparation_method(self, food, order):
+    def get_preparation_method(self, food):
         # in case of oven
         if food.cooking_apparatus == 'oven':
-            current_apparatus = self.kitchen.cooking_apparatus['oven']
-            self.use_cooking_apparatus(current_apparatus, food)
+            current_apparatus = self.find_cooking_apparatus('oven')
+            if current_apparatus is not None:
+                self.use_cooking_apparatus(current_apparatus, food)
+                self.lock.acquire()
+                self.available_apparatus['oven'] -= 1
+                self.lock.release()
+            else:
+                food.food_lock.acquire()
+                food.state = waiting_to_be_prepared
+                food.food_lock.release()
+                self.lock.acquire()
+                self.busy_partition -= 1
+                if self.busy_partition < self.proficiency:
+                    self.is_available = available
+                self.lock.release()
+        # in case of stove
         elif food.cooking_apparatus == 'stove':
-            current_apparatus = self.kitchen.cooking_apparatus['stove']
-            self.use_cooking_apparatus(current_apparatus, food)
+            current_apparatus = self.find_cooking_apparatus('stove')
+            if current_apparatus is not None:
+                self.use_cooking_apparatus(current_apparatus, food)
+                self.lock.acquire()
+                self.available_apparatus['stove'] -= 1
+                self.lock.release()
+            else:
+                food.food_lock.acquire()
+                food.state = waiting_to_be_prepared
+                food.food_lock.release()
+                self.lock.acquire()
+                self.busy_partition -= 1
+                if self.busy_partition < self.proficiency:
+                    self.is_available = available
+                self.lock.release()
         else:
-            self.cook_food(food)
-            # logging.info(f'Food {food.food_id} from order {order.order_id} has been prepared')
+            self.cook_food_part(food)
 
-    # def find_cooking_apparatus(self, apparatus_type):
-    #     # self.kitchen.order_list_lock.acquire()
-    #     for apparatus in self.kitchen.cooking_apparatus[apparatus_type]:
-    #         if apparatus.state == cooking_apparatus_available:
-    #             return apparatus
-    #     return None
+    def find_cooking_apparatus(self, apparatus_type):
+        for apparatus in self.kitchen.cooking_apparatus[apparatus_type]:
+            apparatus.lock.acquire()
+            if apparatus.state == cooking_apparatus_available:
+                apparatus.state = cooking_apparatus_busy
+                apparatus.lock.release()
+                return apparatus
+            else:
+                apparatus.lock.release()
+        return None
 
     def use_cooking_apparatus(self, current_apparatus, food):
-        current_apparatus.lock.acquire()
-        if current_apparatus.state == cooking_apparatus_available:
-            # current_apparatus.state = cooking_apparatus_busy
-            food.state = in_preparation
-            # self.kitchen.order_list_lock.release()
-            current_apparatus.apparatus_cook_food(food)
-            self.cooking_apparatus.append(current_apparatus)
-        else:
-            self.kitchen.food_list.append(food)
-        current_apparatus.lock.release()
-        food.food_lock.release()
+        Thread(target=current_apparatus.apparatus_cook_food, args=(food,)).start()
         self.lock.acquire()
+        self.cooking_apparatus.append(current_apparatus)
         self.busy_partition -= 1
         if self.busy_partition < self.proficiency:
             self.is_available = available
         self.lock.release()
 
     def cook_food_part(self, food):
-        sleep(min(time_partition, food.preparation_time - food.cooked_time) * time_unit)
-        # check number of finished threads and set food as prepared if done
         food.food_lock.acquire()
         food.cooked_time += time_partition
+        food.food_lock.release()
+        sleep(min(time_partition, abs(food.preparation_time - food.cooked_time)) * time_unit)
+        food.food_lock.acquire()
         if food.preparation_time <= food.cooked_time:
             food.state = prepared
+            food.food_lock.release()
             logging.info(f'Food {food.food_id} from order {food.order_id} has been prepared')
         else:
             food.state = waiting_to_be_prepared
-            self.kitchen.food_list.append(food)
+            food.food_lock.release()
             print('Coook ', self.cook_id, self.is_available)
-        sleep(0.5 * time_unit)
         self.lock.acquire()
-            # self.cooked_part += 1
         self.busy_partition -= 1
         if self.busy_partition < self.proficiency:
             self.is_available = available
         self.lock.release()
-        food.food_lock.release()
+        self.check_cooking_apparatus()
+
+        # i = 0
+        # while i < len(self.cooking_apparatus):
+        #     self.cooking_apparatus[i].lock.acquire()
+        #     if self.cooking_apparatus[i].state == food_ready:
+        #         current_apparatus = self.cooking_apparatus[i]
+        #         current_apparatus.lock.release()
+        #         self.lock.acquire()
+        #         self.cooking_apparatus.pop(i)
+        #         self.lock.release()
+        #         current_apparatus.food.food_lock.acquire()
+        #         if current_apparatus.food.cooked_time >= current_apparatus.food.preparation_time:
+        #             current_apparatus.food.state = prepared
+        #             current_apparatus.food.food_lock.release()
+        #         else:
+        #             current_apparatus.food.state = waiting_to_be_prepared
+        #             current_apparatus.food.food_lock.release()
+        #         current_apparatus.lock.acquire()
+        #         current_apparatus.state = cooking_apparatus_available
+        #         current_apparatus.lock.release()
+        #         self.lock.acquire()
+        #         self.available_apparatus[current_apparatus.food.cooking_apparatus] += 1
+        #         self.lock.release()
+        #         logging.info(f'{self.cook_id} {self.is_available}')
+        #         i -= 1
+        #     else:
+        #         self.cooking_apparatus[i].lock.release()
+        #     i += 1
+
+    def check_cooking_apparatus(self):
+        i = 0
+        while i < len(self.cooking_apparatus):
+            self.cooking_apparatus[i].lock.acquire()
+            if self.cooking_apparatus[i].state == food_ready:
+                current_apparatus = self.cooking_apparatus[i]
+                current_apparatus.lock.release()
+                self.lock.acquire()
+                self.cooking_apparatus.pop(i)
+                self.lock.release()
+                current_apparatus.food.food_lock.acquire()
+                if current_apparatus.food.cooked_time >= current_apparatus.food.preparation_time:
+                    current_apparatus.food.state = prepared
+                    current_apparatus.food.food_lock.release()
+                else:
+                    current_apparatus.food.state = waiting_to_be_prepared
+                    current_apparatus.food.food_lock.release()
+                current_apparatus.lock.acquire()
+                current_apparatus.state = cooking_apparatus_available
+                current_apparatus.lock.release()
+                self.lock.acquire()
+                self.available_apparatus[current_apparatus.food.cooking_apparatus] += 1
+                self.lock.release()
+                logging.info(f'{self.cook_id} {self.is_available}')
+                i -= 1
+            else:
+                self.cooking_apparatus[i].lock.release()
+            i += 1
