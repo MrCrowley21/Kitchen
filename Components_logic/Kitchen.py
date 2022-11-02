@@ -30,26 +30,55 @@ class Kitchen:
                                   'stove': [CookingApparatus('stove', i, self) for i in range(stove_nr)]}
         self.apparatus_lock = Lock()
         self.order_list_lock = Lock()
+        self.client_service_order = {}
         self.food_list = []
 
     # set the order after its receiving
     def receive_order(self, order):
-        # notify about adding the order in the list of orders needed to be prepared
-        logging.info(f'Adding order {order["order_id"]} in the order list...')
-        items = [Food(self.menu[i], order['order_id'], order['priority']) for i in order['items_id']]
-        items.sort(key=lambda x: x.complexity)
         try:
+            # notify about adding the order in the list of orders needed to be prepared
+            logging.info(f'Adding order {order["order_id"]} in the order list...')
+            items = [Food(self.menu[i], order['order_id'], order['priority']) for i in order['items_id']]
+            items.sort(key=lambda x: x.complexity)
             order = Order(order['order_id'], order['table_id'], order['waiter_id'], order['items_id'],
                           items, order['priority'], order['max_wait'], order['pick_up_time'])
         except:
-            order = Order(order['order_id'], None, None, order['items_id'],
-                          items, order['priority'], order['max_wait'], order['pick_up_time'])
-        # append new order to the order list and sort it by the order od order generation
+            logging.info(f'{order}')
+            # notify about adding the order in the list of orders needed to be prepared
+            logging.info(f'Adding order of client {order["client_id"]} in the order list...')
+            items = [Food(self.menu[i], order['order_id'], order['priority']) for i in order['items']]
+            items.sort(key=lambda x: x.complexity)
+            order = Order(order['order_id'], None, None, order['items'],
+                          items, order['priority'], order['max_wait'], order['created_time'])
+            self.order_list_lock.acquire()
+            self.client_service_order[order.order_id] = order
+            self.order_list_lock.release()
         self.order_list_lock.acquire()
         self.order_list.append(order)
         self.order_dict[order.order_id] = order
         self.food_list += items
         self.order_list_lock.release()
+
+    def compute_estimated_time(self, order):
+        try:
+            items = [self.menu[i] for i in order['items']]
+        except:
+            items = [self.menu[i] for i in order.items_id]
+        cooking_with_app, cooking_without_app = self.__compute_food_count(items)
+        estimated_waiting_time = (cooking_without_app / self.cooks_proficiency +
+                                  cooking_with_app / total_cooking_apparatus) * \
+                                 (len(self.food_list) + len(items)) / len(items)
+        return estimated_waiting_time
+
+    def __compute_food_count(self, items):
+        with_cooking_apparatus = 0
+        without_cooking_apparatus = 0
+        for item in items:
+            if item['cooking-apparatus'] is None:
+                without_cooking_apparatus += item['preparation-time']
+            else:
+                with_cooking_apparatus += item['preparation-time']
+        return with_cooking_apparatus, without_cooking_apparatus
 
     # set up threads for cooks
     def put_cooks_to_work(self):

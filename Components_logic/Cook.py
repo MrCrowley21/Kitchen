@@ -201,34 +201,6 @@ class Cook:
         self.lock.release()
         self.check_cooking_apparatus()
 
-        # i = 0
-        # while i < len(self.cooking_apparatus):
-        #     self.cooking_apparatus[i].lock.acquire()
-        #     if self.cooking_apparatus[i].state == food_ready:
-        #         current_apparatus = self.cooking_apparatus[i]
-        #         current_apparatus.lock.release()
-        #         self.lock.acquire()
-        #         self.cooking_apparatus.pop(i)
-        #         self.lock.release()
-        #         current_apparatus.food.food_lock.acquire()
-        #         if current_apparatus.food.cooked_time >= current_apparatus.food.preparation_time:
-        #             current_apparatus.food.state = prepared
-        #             current_apparatus.food.food_lock.release()
-        #         else:
-        #             current_apparatus.food.state = waiting_to_be_prepared
-        #             current_apparatus.food.food_lock.release()
-        #         current_apparatus.lock.acquire()
-        #         current_apparatus.state = cooking_apparatus_available
-        #         current_apparatus.lock.release()
-        #         self.lock.acquire()
-        #         self.available_apparatus[current_apparatus.food.cooking_apparatus] += 1
-        #         self.lock.release()
-        #         logging.info(f'{self.cook_id} {self.is_available}')
-        #         i -= 1
-        #     else:
-        #         self.cooking_apparatus[i].lock.release()
-        #     i += 1
-
     def check_cooking_apparatus(self):
         i = 0
         while i < len(self.cooking_apparatus):
