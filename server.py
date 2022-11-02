@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 
 # define server function to receive order requests from the dining hall
-@app.route('/receive_order', methods=['POST', 'GET'])
+@app.route('/receive_order', methods=['POST'])
 def receive_order():
     order = request.json
     Thread(target=kitchen.receive_order, args=(order,)).start()
