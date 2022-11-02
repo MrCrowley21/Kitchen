@@ -46,7 +46,7 @@ time_unit = 0.5
 nr_cooks = 4
 
 # define time partition
-time_partition = 20
+time_partition = 10
 
 # define configs according to the restaurants
 restaurant_id = '1'
