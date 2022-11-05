@@ -89,7 +89,6 @@ class Kitchen:
     def prepare_order(self):
         # set up the cooks
         self.put_cooks_to_work()
-        # self.start_cooking_apparatus()
         while True:
             for order in self.order_list:
                 # check for prepared orders and send them to the dinning hall
@@ -97,7 +96,7 @@ class Kitchen:
                     order.cooking_time = (time.time() - order.cooking_time) / time_unit
                     order_to_send = copy(order.__dict__)
                     order_to_send.pop('items', None)
-                    requests.post(f'{dinning_hall_url}receive_prepared_order',
+                    requests.post(f'{dinning_hall}receive_prepared_order',
                                   json=order_to_send)
                     logging.info(f'Order {order.order_id} with order details:\n'
                                  f'{order_to_send} \n'

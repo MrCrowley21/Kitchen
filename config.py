@@ -49,9 +49,11 @@ nr_cooks = 4
 time_partition = 10
 
 # define configs according to the restaurants
-restaurant_id = '1'
+restaurant_id = '2'
 port = ports['port_' + restaurant_id]
 dinning_hall_url = urls_for_dinning_hall['dinning_hall_url_' + restaurant_id]
 dinning_hall_container_url = urls_for_dinning_hall['dinning_hall_container_url_' + restaurant_id]
-# menu = 'kitchen_data/menu_' + restaurant_id + '.json'
-menu = 'kitchen_data/menu.json'
+# dinning_hall = dinning_hall_url
+dinning_hall = dinning_hall_container_url
+menu = 'kitchen_data/menu_' + restaurant_id + '.json'
+# menu = 'kitchen_data/menu.json'
