@@ -59,9 +59,9 @@ class Cook:
         self.kitchen.order_list_lock.release()
         if food is not None:
             order = self.kitchen.order_dict[food.order_id]
-            self.get_preparation_method(food)
+            self.get_preparation_method(food, order)
             food.cook_id = self.cook_id
-            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
+            # order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
         self.lock.acquire()
         self.busy_partition -= 1
         if self.busy_partition < self.proficiency:
@@ -122,12 +122,12 @@ class Cook:
         return None
 
     # performing the check of the method of food preparation: using oven, stove or none of them
-    def get_preparation_method(self, food):
+    def get_preparation_method(self, food, order):
         # in case of oven
         if food.cooking_apparatus == 'oven':
             current_apparatus = self.find_cooking_apparatus('oven')
             if current_apparatus is not None:
-                self.use_cooking_apparatus(current_apparatus, food)
+                self.use_cooking_apparatus(current_apparatus, food, order)
                 self.lock.acquire()
                 self.available_apparatus['oven'] -= 1
                 self.lock.release()
@@ -144,7 +144,7 @@ class Cook:
         elif food.cooking_apparatus == 'stove':
             current_apparatus = self.find_cooking_apparatus('stove')
             if current_apparatus is not None:
-                self.use_cooking_apparatus(current_apparatus, food)
+                self.use_cooking_apparatus(current_apparatus, food, order)
                 self.lock.acquire()
                 self.available_apparatus['stove'] -= 1
                 self.lock.release()
@@ -159,6 +159,7 @@ class Cook:
                 self.lock.release()
         else:
             self.cook_food_part(food)
+            order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
 
     def find_cooking_apparatus(self, apparatus_type):
         for apparatus in self.kitchen.cooking_apparatus[apparatus_type]:
@@ -171,7 +172,7 @@ class Cook:
                 apparatus.lock.release()
         return None
 
-    def use_cooking_apparatus(self, current_apparatus, food):
+    def use_cooking_apparatus(self, current_apparatus, food, order):
         Thread(target=current_apparatus.apparatus_cook_food, args=(food,)).start()
         self.lock.acquire()
         self.cooking_apparatus.append(current_apparatus)
@@ -179,6 +180,7 @@ class Cook:
         if self.busy_partition < self.proficiency:
             self.is_available = available
         self.lock.release()
+        order.cooking_details.append({'food_id': food.food_id, 'cook_id': self.cook_id})
 
     def cook_food_part(self, food):
         food.food_lock.acquire()
